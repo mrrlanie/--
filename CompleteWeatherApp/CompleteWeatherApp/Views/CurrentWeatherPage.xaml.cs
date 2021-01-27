@@ -27,14 +27,37 @@ namespace CompleteWeatherApp.Views
 
         private async void func_by_loc()
         {
-            await GetCoordinates();
-            GetCity(Location);
-            GetWeatherInfo();
+            try
+            {
+                await GetCoordinates();
+                await GetCity(Location);
+                await GetWeatherInfo();
+                Title = City.Replace(",", ", ");
+            }
+            catch(Exception ex)
+            {
+
+            }
         }
 
         private async void func_by_city()
         {
-            //string NewCity = await DisplayPromptAsync("City", "Enter city", "Ok", "Cancel", "City Name", 30, Keyboard.Default);
+            string NewCity = await DisplayPromptAsync("City", "Enter city", "Ok", "Cancel");
+            if (NewCity != null)
+            {
+                try
+                {
+                    City = NewCity;
+                    if (await GetWeatherInfo() == true)
+                    {
+                        Title = City;
+                    }
+                }
+                catch(Exception ex)
+                {
+
+                }
+            }
         }
 
         private async Task<bool> GetCoordinates()
@@ -57,7 +80,7 @@ namespace CompleteWeatherApp.Views
             }
         }
 
-        private async void GetCity(Location location)
+        private async Task<bool> GetCity(Location location)
         {
             var places = await Geocoding.GetPlacemarksAsync(Location);
             var currentPlace = places?.FirstOrDefault();
@@ -65,12 +88,14 @@ namespace CompleteWeatherApp.Views
             if (currentPlace != null)
             {
                 City = $"{currentPlace.Locality},{currentPlace.CountryName}";
+                return true;
             }
+            return false;
         }
 
-        private async void GetWeatherInfo()
+        private async Task<bool> GetWeatherInfo()
         {
-            var url = $"http://api.openweathermap.org/data/2.5/weather?q={City}&lang=ru&appid=bd9dd69e6042fa1dfa85c616e505445c&units=metric";
+            var url = $"http://api.openweathermap.org/data/2.5/weather?q={City}&appid=bd9dd69e6042fa1dfa85c616e505445c&units=metric";
 
             var result = await ApiCaller.Get(url);
 
@@ -90,23 +115,25 @@ namespace CompleteWeatherApp.Views
 
                     var dt = new DateTime().ToUniversalTime().AddSeconds(weatherInfo.dt);
                     dateTxt.Text = dt.ToString("dddd, MMM dd").ToUpper();
-
                     GetForecast();
+                    return true;
                 }
                 catch (Exception ex)
                 {
                     await DisplayAlert("Weather Info", ex.Message, "OK");
+                    return false;
                 }
             }
             else
             {
                 await DisplayAlert("Weather Info", "No weather information found", "OK");
+                return false;
             }
         }
 
         private async void GetForecast()
         {
-            var url = $"http://api.openweathermap.org/data/2.5/forecast?q={City}&lang=ru&appid=bd9dd69e6042fa1dfa85c616e505445c&units=metric";
+            var url = $"http://api.openweathermap.org/data/2.5/forecast?q={City}&appid=bd9dd69e6042fa1dfa85c616e505445c&units=metric";
             var result = await ApiCaller.Get(url);
 
             if (result.Successful)
@@ -157,9 +184,14 @@ namespace CompleteWeatherApp.Views
             }
         }
 
-        private void ToolbarItem_Clicked(object sender, EventArgs e)
+        private void ToolbarItem_byloc(object sender, EventArgs e)
         {
             func_by_loc();
+        }
+
+        private void ToolbarItem_bycity(object sender, EventArgs e)
+        {
+            func_by_city();
         }
     }
 }
